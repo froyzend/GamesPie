@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+ <!--   <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />-->
+    <title>Minesweeper</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        -webkit-user-select: none; /* Убираем выделение текста */
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      #header {
+        display: flex;
+        justify-content: space-between;
+        width: 360px;
+        margin: 20px;
+      }
+
+      .info-box {
+        background-color: black;
+        color: red;
+        font-size: 20px;
+        padding: 5px;
+        width: 80px;
+        text-align: center;
+        border-radius: 5px;
+      }
+
+      .button-text {
+          width: 50px; /* Задайте нужную ширину */
+          height: 50px; /* Задайте нужную высоту */
+          font-size: 20px; /* Размер шрифта */
+          border: none; /* Уберите рамку, если не нужна */
+          
+          cursor: pointer; /* Измените курсор, чтобы указать на кликабельность */
+          display: inline-block; /* Отображение как блочный элемент */
+          text-align: center; /* Центрирование текста */
+          border-radius: 5px; /* Скругление углов */
+      
+      }
+
+
+
+      #game {
+        display: grid;
+        grid-template-columns: repeat(18, 20px); /* 18 столбцов */
+        grid-template-rows: repeat(25, 20px); /* 25 строк */
+        gap: 1px;
+        margin: 20px auto;
+        position: relative;
+      }
+
+      .cell {
+        width: 20px; /* Размер ячейки вдвое меньше */
+        height: 20px; /* Размер ячейки вдвое меньше */
+        background-color: #eee;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .cell.revealed {
+        background-color: #fff;
+        cursor: default;
+      }
+
+      .cell.mine {
+        background-color: rgb(255, 255, 255);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <div id="minesLeft" class="info-box">75</div>
+      <button
+        id="modeButton"
+        class="button-icon"
+        radius: 50%;
+        font-size: 20px;
+      >🪓</button>
+      <button
+        id="restartButton"
+        class="button-icon"
+        radius: 50%;  
+        font-size: 20px;
+      >🔄</button>
+      <div id="timer" class="info-box">0</div>
+    </div>
+
+    <div id="game"></div>
+
+    <script src="/public/index.html"></script>
+    <script>
+      const rows = 25;
+      const cols = 18;
+      const totalMines = 75;
+      let board = [];
+      let gameOver = false;
+      let timeTaken = 0;
+      let timer;
+      let minesLeft = totalMines;
+      let flagMode = false; // Флаг для переключения режима
+      let longPressTimer; // Таймер для долгого нажатия
+
+      // Функция инициализации игры
+      function initGame() {
+        board = createBoard();
+        renderBoard();
+        startTimer();
+        document.getElementById("minesLeft").textContent = minesLeft;
+        gameOver = false;
+      }
+
+      // Функция создания поля игры
+      function createBoard() {
+        const board = Array(rows)
+          .fill(null)
+          .map(() => Array(cols).fill({}));
+        let mines = 0;
+
+        while (mines < totalMines) {
+          const row = Math.floor(Math.random() * rows);
+          const col = Math.floor(Math.random() * cols);
+          if (!board[row][col].mine) {
+            board[row][col] = { mine: true, revealed: false, flagged: false };
+            mines++;
+          }
+        }
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (!board[r][c].mine) {
+              const adjacentMines = countAdjacentMines(board, r, c);
+              board[r][c] = {
+                mine: false,
+                revealed: false,
+                adjacentMines: adjacentMines,
+                flagged: false,
+              };
+            }
+          }
+        }
+        return board;
+      }
+
+      // Функция подсчета соседних мин
+      function countAdjacentMines(board, row, col) {
+        let count = 0;
+        for (
+          let r = Math.max(0, row - 1);
+          r <= Math.min(rows - 1, row + 1);
+          r++
+        ) {
+          for (
+            let c = Math.max(0, col - 1);
+            c <= Math.min(cols - 1, col + 1);
+            c++
+          ) {
+            if (board[r][c].mine) count++;
+          }
+        }
+        return count;
+      }
+
+      // Функция отрисовки поля
+      function renderBoard() {
+        const gameDiv = document.getElementById("game");
+        gameDiv.innerHTML = "";
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            const cellData = board[r][c];
+
+            if (cellData.revealed) {
+              if (cellData.mine) {
+                cell.classList.add("mine");
+                cell.textContent = "💣";
+              } else if (cellData.adjacentMines > 0) {
+                cell.textContent = cellData.adjacentMines;
+              }
+              cell.classList.add("revealed");
+            } else if (cellData.flagged) {
+              cell.textContent = "🚩";
+              cell.backgroundImage = "url('images/flag.png')";
+            }
+
+            // Обычный клик
+            cell.addEventListener("click", () => handleClick(r, c));
+
+            // Долгое нажатие
+            let longPressTimer;
+
+            cell.addEventListener("mousedown", () => {
+              longPressTimer = setTimeout(() => {
+                handleRightClick(r, c);
+              }, 600);
+            });
+
+            cell.addEventListener("mouseup", () => {
+              clearTimeout(longPressTimer);
+            });
+
+            cell.addEventListener("mouseleave", () => {
+              clearTimeout(longPressTimer);
+            });
+
+            // Добавление события touchstart для мобильных устройств
+            cell.addEventListener("touchstart", () => {
+              longPressTimer = setTimeout(() => {
+                handleRightClick(r, c);
+              }, 600);
+            });
+
+            cell.addEventListener("touchend", () => {
+              clearTimeout(longPressTimer);
+            });
+
+            gameDiv.appendChild(cell);
+          }
+        }
+      }
+
+      // Функция обработки кликов
+      function handleClick(row, col) {
+        if (gameOver) return;
+        const cell = board[row][col];
+
+        // Prevent actions if the cell is revealed or flagged
+        if (cell.revealed || cell.flagged) return; // Не открываем флажок
+
+        // Logic for flagging the cell
+        if (flagMode) {
+            // Пометка флажком
+            cell.flagged = !cell.flagged;
+            if (cell.flagged) {
+                minesLeft--;
+            } else {
+                minesLeft++;
+            }
+            document.getElementById("minesLeft").textContent = minesLeft;
+        } else {
+            // Logic for opening the cell
+            cell.revealed = true;
+            if (cell.mine) {
+                revealMines();
+                gameOver = true;
+                clearInterval(timer);
+                alert("Игра окончена! Вы наткнулись на мину.");
+            } else {
+                if (cell.adjacentMines === 0) {
+                    revealEmptyCells(row, col);
+                }
+                renderBoard();
+            }
+        }
+
+        renderBoard();
+    }
+
+    // Add event listeners to your cell elements
+    function addCellEventListeners(cellElement, row, col) {
+        cellElement.addEventListener('click', () => handleClick(row, col)); // Mouse click
+       // cellElement.addEventListener('touchstart', (event) => {
+       //     event.preventDefault(); // Prevent default touch behavior
+         //   handleClick(row, col); // Handle touch
+      //  });
+        cellElement.addEventListener("touchstart", () => {
+              handleRightClick(row, col);
+            });
+    }
+      // Функция обработки установки флага (долгое нажатие)
+      function handleRightClick(row, col) {
+        if (gameOver) return;
+        const cell = board[row][col];
+        if (!cell.revealed) {
+          // Устанавливаем флажок только на неоткрытые ячейки
+          cell.flagged = !cell.flagged; // Добавляем или убираем флаг
+          minesLeft += cell.flagged ? -1 : 1;
+          document.getElementById("minesLeft").textContent = minesLeft;
+        }
+        renderBoard();
+      } 
+
+      // Функция раскрытия мин
+      function revealMines() {
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (board[r][c].mine) {
+              board[r][c].revealed = true;
+            }
+          }
+        }
+        renderBoard();
+      }
+
+      // Функция раскрытия пустых ячеек
+      function revealEmptyCells(row, col) {
+        for (
+          let r = Math.max(0, row - 1);
+          r <= Math.min(rows - 1, row + 1);
+          r++
+        ) {
+          for (
+            let c = Math.max(0, col - 1);
+            c <= Math.min(cols - 1, col + 1);
+            c++
+          ) {
+            const cell = board[r][c];
+            if (!cell.revealed && !cell.mine && !cell.flagged) {
+              cell.revealed = true;
+              if (cell.adjacentMines === 0) {
+                revealEmptyCells(r, c);
+              }
+            }
+          }
+        }
+      }
+
+      // Функция запуска таймера
+      function startTimer() {
+        timeTaken = 0;
+        clearInterval(timer);
+        timer = setInterval(() => {
+          timeTaken++;
+          document.getElementById("timer").textContent = timeTaken;
+        }, 1000);
+      }
+
+      // Функция перезапуска игры
+      document.getElementById("restartButton").addEventListener("click", () => {
+        clearInterval(timer);
+        minesLeft = totalMines;
+        document.getElementById("timer").textContent = "0";
+        initGame();
+      });
+
+      // Функция переключения режима
+      document.getElementById("modeButton").addEventListener("click", () => {
+        flagMode = !flagMode;
+        const modeButton = document.getElementById("modeButton");
+        if (flagMode) {
+          //modeButton.style.backgroundImage = "url('images/flag.png')";
+          modeButton.textContent = "🚩";
+        } else {
+          //modeButton.style.backgroundImage = "url('images/shovel.png')";
+          modeButton.textContent = "🪓";
+        }
+      });
+
+      // Запуск игры
+      initGame();
+    </script>
+    <script src="https://telegram.org/js/games.js"></script>
+    <script src=""></script>
+    <button type="button" onclick="TelegramGameProxy.shareScore()">Share Score</button>
+  </body>
+</html>
