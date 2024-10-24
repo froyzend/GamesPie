@@ -1,8 +1,8 @@
-// 7605809135:AAHN87WOl9ly7SZR7dYdTspohL3DY__IpjM
+// 7470826520:AAE_8SmPidrCYzEREfpVJ5E0gaC5Yjwj5eE
 
 const TOKEN =
   process.env.TELEGRAM_TOKEN ||
-  "7605809135:AAHN87WOl9ly7SZR7dYdTspohL3DY__IpjM";
+  "7470826520:AAE_8SmPidrCYzEREfpVJ5E0gaC5Yjwj5eE";
 const gameName = process.env.TELEGRAM_GAMENAME || "GamesPie";
 // Specify '0' to use ngrok i.e. localhost tunneling
 let url = process.env.URL || "https://games-pie.vercel.app/";
