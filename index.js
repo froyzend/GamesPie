@@ -5,15 +5,13 @@ const TOKEN =
   "7605809135:AAHN87WOl9ly7SZR7dYdTspohL3DY__IpjM";
 const gameName = process.env.TELEGRAM_GAMENAME || "GamesPie";
 // Specify '0' to use ngrok i.e. localhost tunneling
-let url =
-  process.env.URL ||
-  "https://minesweeper-9jyjzh8zk-froyzends-projects.vercel.app/";
+let url = process.env.URL || "https://games-pie.vercel.app/";
 const port = process.env.PORT || 8080;
 
 const axios = require("axios");
 
 axios
-  .get("https://example.com")
+  .get("https://games-pie.vercel.app/")
   .then((response) => {
     console.log(response.data);
   })
